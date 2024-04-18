@@ -801,6 +801,16 @@ requests = "*"
 tests = ["absl-py", "geopandas", "numpy"]
 
 [[package]]
+name = "ecmwf-api-client"
+version = "1.6.3"
+description = "Python client for ECMWF web services API."
+optional = false
+python-versions = "*"
+files = [
+    {file = "ecmwf-api-client-1.6.3.tar.gz", hash = "sha256:3a00bda34a72e2d5198c97399a4750b42a6633efdb5e1b3a5fd2b2bbaa5db0d6"},
+]
+
+[[package]]
 name = "eerepr"
 version = "0.0.4"
 description = "Code Editor-style reprs for Earth Engine data in a Jupyter notebook."
@@ -3826,4 +3836,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "bfc9226803bce7cbf48db7228b4b75f6716f3ab27744d44178dabee46379bb43"
+content-hash = "247fc2adeefe19fae54cbccfec3e09588695611e6dd47f7908f5890db6d47d69"
