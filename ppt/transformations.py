@@ -1,6 +1,6 @@
 import ee
 from datetime import timedelta
-
+import re
 def extract_ppt(date,geometry,collection:str = ''):
   """Extract precipitation in a sigle coordinate. Collections current avaliable include: 
     CHIRPS Daily- Climate Hazards Group InfraRed Precipitation With Station Data and ECMWF ERA5-Land Daily Aggregated.
@@ -13,8 +13,14 @@ def extract_ppt(date,geometry,collection:str = ''):
   collections = ['CHIRPS', 'ECMWF']
   if collection == 'CHIRPS':
     snippet = 'UCSB-CHG/CHIRPS/DAILY'
+    column_filter = 'precipitation'
+    multiplier = 1
+
   if collection == 'ECMWF':
     snippet = 'ECMWF/ERA5_LAND/DAILY_AGGR'
+    column_filter = 'total_precipitation_sum'
+    multiplier = 1000
+
   elif collection not in collections:
     raise ValueError("Invalid collection. Expected one of: %s" % collections)
   
@@ -23,14 +29,18 @@ def extract_ppt(date,geometry,collection:str = ''):
 
   region = ee.Geometry.Point(geometry) 
 
+  image = image.select(column_filter)
+
   mean = image.reduceRegion(**{
     'reducer': ee.Reducer.mean(),
     'geometry': region,
     'scale': 30
   })
-
-  return(mean.getInfo())
-
+  response = mean.getInfo()
+  try:
+    return(response[column_filter]*multiplier)
+  except:
+    return(0)
 def date_range(start_date, end_date):
   """Create a list of dates from a specified start date to end date with the step of one day.
 

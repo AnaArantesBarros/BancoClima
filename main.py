@@ -16,5 +16,6 @@ for index, row in df.iterrows():
     point = [row['left'], row['top']]
     for date in date_range(start_date, end_date):
         date_ = date.strftime('%Y-%m-%d')
-        ppt = extract_ppt(start_date, point,'CHIRPS')
-        print(date_,point,ppt)
+        ppt_chirps = extract_ppt(start_date, point,'CHIRPS')
+        ppt_ecmwf = extract_ppt(start_date, point,'ECMWF')
+        print(date_,point,ppt_chirps,ppt_ecmwf)
