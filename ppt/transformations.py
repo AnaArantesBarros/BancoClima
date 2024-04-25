@@ -4,7 +4,17 @@ import os
 import requests
 import zipfile
 import pandas as pd
+import dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.engine import URL
+from sqlalchemy.orm import sessionmaker
+from os import listdir
+from os.path import isfile, join
 from datetime import timedelta, datetime
+from ppt.config.database.tables import INMET
+from ppt.config.database.connector import generate_database_session
+import sys
+sys.path.insert(0, os.path.abspath(".."))
 
 
 def extract_ppt(date,geometry,collection:str = ''): #Tem como usar um multipolygon?? Seria mais rápido???
@@ -87,7 +97,6 @@ def ppt_nasa(start_date:datetime, end_date:datetime, point:list , args='PRECTOT'
 
     data = response.text
 
-    # Limpamos as informações desnecessárias
     before, sep, after = data.partition('-END HEADER-')
     if len(after) > 0:
         data = after
@@ -102,7 +111,13 @@ def ppt_nasa(start_date:datetime, end_date:datetime, point:list , args='PRECTOT'
         return(df)
 
 
-def ppt_inmet_update(year, output_path):
+def ppt_inmet_update(year, output_path:str):
+    """Download and extract .zip files from inmet site.
+    
+    Keyword arguments:
+    year -- string, float or interger
+    output_path -- string
+    """
     year = str(year)
     url = f'https://portal.inmet.gov.br/uploads/dadoshistoricos/{year}.zip'
     output = output_path + '\\WeatherStation'
@@ -119,3 +134,95 @@ def ppt_inmet_update(year, output_path):
         print(f"Arquivos extraídos com sucesso para: {output}")
     else:
         print("Erro ao baixar o arquivo.")
+
+
+def extract_info_from_filename(filename:str):
+  """Extract information from the name of the file using regex.
+
+  filename -- string
+  """
+  matches_date = re.findall(r'(\d{2}-\d{2}-\d{4})', filename)
+  start_date = matches_date[0]
+  end_date = matches_date[1]
+
+  matches_state = re.findall(r'(_[A-Za-z]{2}+_A)', filename)
+  state = matches_state[0].replace('_A','').replace("_",'')
+
+  matches_station = re.findall(r'([0-9]_[A-Za-z ]{4,}_[0-9])', filename)
+  station = matches_station[0][2:-2]
+
+  return(filename, start_date, end_date,state,station)
+
+
+def ppt_from_header(path: str, file: str):
+  """ Extracting information in the header of station file. 
+
+  path -- string
+  file -- string
+  """
+  with open(str(path + file), 'r', encoding='ISO-8859-1') as arquivo:
+    lines = arquivo.readlines()[:8] 
+    dict = {}
+    for line in lines:
+      key, value = line.strip().split(':')
+      dict[key] = value.strip(';')  # Remover ';' dos valores
+    return dict
+
+
+def ppt_from_station(path:str,file:str):
+  """ Converting information from station file to a pandas Data Frame.
+  
+  path -- string
+  file -- string
+  """
+  with open(str(path+file), encoding='ISO-8859-1') as my_file:
+    df = pd.read_csv(my_file, skiprows=8, delimiter=';', decimal=',')
+    df['DATE'] = pd.to_datetime(df['DATA (YYYY-MM-DD)'])
+    df['PPT_mm'] = df['PRECIPITAÇÃO TOTAL, HORÁRIO (mm)'].replace(-9999.0,0)
+    ppt_by_date = df.groupby('DATE')['PPT_mm'].sum()
+    new_df = ppt_by_date.reset_index()
+    linhas = ppt_from_header(path,file)
+    new_df['STATION'] = linhas['ESTAÇÃO']
+    new_df['LATITUDE'] = linhas['LATITUDE']
+    new_df['LONGITUDE'] = linhas['LONGITUDE']
+    new_df['CODE'] = linhas['CODIGO (WMO)']
+    new_df['KEY'] = new_df['DATE'].astype(str) + new_df['CODE'].astype(str)
+    new_df['UF'] = linhas['UF']
+    return(new_df)
+   
+def compile_year(year,path:str):
+  """Uses a given year to extract all dates from station files in their respective folders. All data is grouped and summed by day.
+  
+  year -- string/integer
+  path -- string
+  """
+  path = path + '/WeatherStation/' + str(year) + '/'
+  files = [f for f in listdir(path) if isfile(join(path, f))]
+
+  all_dfs = []
+
+  for file in files:
+    df = ppt_from_station(path, file)
+    all_dfs.append(df)
+
+  combined_df = pd.concat(all_dfs, ignore_index=True)
+  return(combined_df)
+
+def DataFrame_to_DB(dataframe, DB):
+  session = generate_database_session()
+  if DB == 'INMET':
+    for index, row in dataframe.iterrows():
+      inmet_data = INMET(
+        KEY=row['KEY'],
+        DATE=row['DATE'],
+        CODE=row['CODE'],
+        LATITUDE=row['LATITUDE'],
+        LONGITUDE=row['LONGITUDE'],
+        STATION=row['STATION'],
+        UF=row['UF'],
+        PPT_mm=row['PPT_mm']
+      )
+    else:
+      pass
+    session.add(inmet_data)
+  return inmet_data

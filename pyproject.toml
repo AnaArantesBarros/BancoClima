@@ -2,7 +2,7 @@
 name = "ppt"
 version = "0.1.0"
 description = ""
-authors = ["Ana Clara Arantes anaarantes@usp.br"]
+authors = ["Ana Clara Arantes <anaarantes@usp.br>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
@@ -19,6 +19,9 @@ fastparquet = "^2024.2.0"
 rasterio = "^1.3.10"
 pyproj = "^3.6.1"
 ecmwf-api-client = "^1.6.3"
+sqlalchemy = "^2.0.29"
+python-dotenv = "^1.0.1"
+psycopg = {extras = ["binary", "pool"], version = "^3.1.18"}
 
 
 [build-system]
