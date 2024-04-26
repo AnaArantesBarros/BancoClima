@@ -3,9 +3,8 @@ from dotenv import load_dotenv
 from ppt.earth_engine_helper import authenticate
 from sqlalchemy import create_engine, Column, Integer, String, MetaData, Table, DateTime
 from ppt.config.database.tables import INMET
-from ppt.config.database.connector import (generate_database_engine, generate_database_session)
-from ppt.transformations import (ppt_nasa, datetime_to_str,
-                                 ppt_inmet_update,compile_year, DataFrame_to_DB)
+from ppt.config.database.connector import (generate_database_session)
+from ppt.transformations import (compile_year,inmet_download_unzip)
 
 authenticate(project='ee-anaarantes')
 # engine = generate_database_engine()
@@ -14,24 +13,11 @@ session = generate_database_session()
 path = os.path.dirname(os.path.realpath(__file__))
 #parquet_file = os.path.join(path, 'Files\\sp.parquet')
 #points = pd.read_parquet(parquet_file)
+for year in range(2000,2024,1):
+  inmet_download_unzip(year,path)
+  df_year = compile_year(year,path)
 
-df_year = compile_year(2000,path)
-# Exibir o DataFrame combinado
-print(df_year)
-for index, row in df_year.iterrows():
-    inmet_data = INMET(
-        KEY=row['KEY'],
-        DATE=row['DATE'],
-        CODE=row['CODE'],
-        LATITUDE=float(row['LATITUDE'].replace(',', '.')),
-        LONGITUDE=float(row['LONGITUDE'].replace(',', '.')),
-        STATION=row['STATION'],
-        UF=row['UF'],
-        PPT_mm=float(row['PPT_mm'])
-      )
-    session.add(inmet_data)
-#session.add(df)
-session.commit()
+
 #all_ppt = pd.DataFrame() 
 
 

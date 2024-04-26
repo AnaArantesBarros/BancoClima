@@ -111,7 +111,7 @@ def ppt_nasa(start_date:datetime, end_date:datetime, point:list , args='PRECTOT'
         return(df)
 
 
-def ppt_inmet_update(year, output_path:str):
+def inmet_download_unzip(year, output_path:str):
     """Download and extract .zip files from inmet site.
     
     Keyword arguments:
@@ -120,8 +120,8 @@ def ppt_inmet_update(year, output_path:str):
     """
     year = str(year)
     url = f'https://portal.inmet.gov.br/uploads/dadoshistoricos/{year}.zip'
-    output = output_path + '\\WeatherStation'
-    zip_filename = os.path.join(output, f'\\{year}.zip')
+    output = output_path + '/WeatherStation'
+    zip_filename = os.path.join(output, f'/{year}.zip')
     response = requests.get(url)
 
     if response.status_code == 200:
@@ -207,22 +207,3 @@ def compile_year(year,path:str):
 
   combined_df = pd.concat(all_dfs, ignore_index=True)
   return(combined_df)
-
-def DataFrame_to_DB(dataframe, DB):
-  session = generate_database_session()
-  if DB == 'INMET':
-    for index, row in dataframe.iterrows():
-      inmet_data = INMET(
-        KEY=row['KEY'],
-        DATE=row['DATE'],
-        CODE=row['CODE'],
-        LATITUDE=row['LATITUDE'],
-        LONGITUDE=row['LONGITUDE'],
-        STATION=row['STATION'],
-        UF=row['UF'],
-        PPT_mm=row['PPT_mm']
-      )
-    else:
-      pass
-    session.add(inmet_data)
-  return inmet_data
