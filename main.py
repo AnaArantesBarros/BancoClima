@@ -13,13 +13,27 @@ session = generate_database_session()
 path = os.path.dirname(os.path.realpath(__file__))
 #parquet_file = os.path.join(path, 'Files\\sp.parquet')
 #points = pd.read_parquet(parquet_file)
-for year in range(2000,2024,1):
-  inmet_download_unzip(year,path)
+for year in range(2019,2025,1):
+  inmet_download_unzip(year,path) 
   df_year = compile_year(year,path)
+  for index, row in df_year.iterrows():
+    existing_entry = session.query(INMET).filter_by(KEY=row['KEY']).first()
+    if existing_entry:
+      continue  
+    else:
+      inmet_data = INMET(
+      KEY=row['KEY'],
+      DATE=row['DATE'],
+      CODE=row['CODE'],
+      LATITUDE=float(row['LATITUDE'].replace(',', '.')),
+      LONGITUDE=float(row['LONGITUDE'].replace(',', '.')),
+      STATION=row['STATION'],
+      UF=row['UF'],
+      PPT_mm=float(row['PPT_mm'])
+      )
+      session.add(inmet_data)
 
-
-#all_ppt = pd.DataFrame() 
-
+    session.commit
 
 #for index, row in df.iterrows():
 #    point = [row['left'], row['top']]

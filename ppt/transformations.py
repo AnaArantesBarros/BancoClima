@@ -120,20 +120,34 @@ def inmet_download_unzip(year, output_path:str):
     """
     year = str(year)
     url = f'https://portal.inmet.gov.br/uploads/dadoshistoricos/{year}.zip'
-    output = output_path + '/WeatherStation'
-    zip_filename = os.path.join(output, f'/{year}.zip')
-    response = requests.get(url)
-
-    if response.status_code == 200:
-        with open(zip_filename, 'wb') as f:
-            f.write(response.content)
-        with zipfile.ZipFile(zip_filename, 'r') as zip_ref:
-            zip_ref.extractall(output)
-        os.remove(zip_filename)
-
-        print(f"Arquivos extraídos com sucesso para: {output}")
+    if int(year) < 2020:
+        output = output_path + '/WeatherStation'
+        output_folder = output + f'/{year}'
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+        zip_filename = os.path.join(output, f'{year}.zip')
     else:
-        print("Erro ao baixar o arquivo.")
+        output = output_path + '/WeatherStation'+ f'/{year}'
+        if not os.path.exists(output):
+            os.makedirs(output)
+        zip_filename = os.path.join(output, f'{year}.zip')
+
+    try:
+        response = requests.get(url)
+
+        if response.status_code == 200:
+            with open(zip_filename, 'wb') as f:
+                f.write(response.content)
+            with zipfile.ZipFile(zip_filename, 'r') as zip_ref:
+                zip_ref.extractall(output)
+            os.remove(zip_filename)
+
+            print(f"Arquivos extraídos com sucesso para: {output}")
+        else:
+            print("Erro ao baixar o arquivo.")
+
+    except Exception as e:
+        print(f"Erro: {e}")
 
 
 def extract_info_from_filename(filename:str):
@@ -160,7 +174,7 @@ def ppt_from_header(path: str, file: str):
   path -- string
   file -- string
   """
-  with open(str(path + file), 'r', encoding='ISO-8859-1') as arquivo:
+  with open(str(path + '/' + file), 'r', encoding='ISO-8859-1') as arquivo:
     lines = arquivo.readlines()[:8] 
     dict = {}
     for line in lines:
@@ -175,14 +189,27 @@ def ppt_from_station(path:str,file:str):
   path -- string
   file -- string
   """
-  with open(str(path+file), encoding='ISO-8859-1') as my_file:
-    df = pd.read_csv(my_file, skiprows=8, delimiter=';', decimal=',')
-    df['DATE'] = pd.to_datetime(df['DATA (YYYY-MM-DD)'])
+  output_path = path+'/'+file
+  with open(output_path, encoding='ISO-8859-1') as my_file:
+    df = pd.read_csv(output_path, skiprows=8, delimiter=';', decimal=',',encoding='ISO-8859-1')
+    try:
+      df['DATE'] = pd.to_datetime(df['DATA (YYYY-MM-DD)'])
+    except:
+       df['DATE'] = pd.to_datetime(df['Data'])
     df['PPT_mm'] = df['PRECIPITAÇÃO TOTAL, HORÁRIO (mm)'].replace(-9999.0,0)
     ppt_by_date = df.groupby('DATE')['PPT_mm'].sum()
     new_df = ppt_by_date.reset_index()
     linhas = ppt_from_header(path,file)
-    new_df['STATION'] = linhas['ESTAÇÃO']
+    try:
+      new_df['STATION'] = linhas['ESTAÇÃO']
+    except KeyError:
+      try:
+        new_df['STATION'] = linhas['ESTACAO']
+      except KeyError:
+        try:
+            new_df['STATION'] = linhas['ESTAC?O']
+        except KeyError:
+            print("Nenhuma das chaves encontradas")
     new_df['LATITUDE'] = linhas['LATITUDE']
     new_df['LONGITUDE'] = linhas['LONGITUDE']
     new_df['CODE'] = linhas['CODIGO (WMO)']
@@ -196,13 +223,13 @@ def compile_year(year,path:str):
   year -- string/integer
   path -- string
   """
-  path = path + '/WeatherStation/' + str(year) + '/'
-  files = [f for f in listdir(path) if isfile(join(path, f))]
+  output_path = path + '/WeatherStation/' + str(year) + '/' + ''
+  files = [f for f in listdir(output_path) if isfile(join(output_path, f))]
 
   all_dfs = []
 
   for file in files:
-    df = ppt_from_station(path, file)
+    df = ppt_from_station(output_path, file)
     all_dfs.append(df)
 
   combined_df = pd.concat(all_dfs, ignore_index=True)
