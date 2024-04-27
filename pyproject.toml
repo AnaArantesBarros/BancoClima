@@ -24,6 +24,9 @@ python-dotenv = "^1.0.1"
 psycopg = {extras = ["binary", "pool"], version = "^3.1.18"}
 
 
+[tool.poetry.group.dev.dependencies]
+jupyter = "^1.0.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

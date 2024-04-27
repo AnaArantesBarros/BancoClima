@@ -5,8 +5,7 @@ from sqlalchemy.engine import URL
 from sqlalchemy.orm import sessionmaker
 
 dotenv.load_dotenv()
-
-def generate_database_engine():
+def generate_database_url():
     url = URL.create(
         drivername= "postgresql+psycopg",
         username= os.getenv("DB_USERNAME"),
@@ -15,7 +14,11 @@ def generate_database_engine():
         password= os.getenv("DB_PASSWORD"),
         port= "5432"
     )
-    return create_engine(url, echo=True)
+    return url
+
+def generate_database_engine():
+    url = generate_database_url()
+    return create_engine(url, echo=False)
 
 def generate_database_session():
     Session = sessionmaker(bind=generate_database_engine())
