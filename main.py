@@ -13,7 +13,7 @@ session = generate_database_session()
 path = os.path.dirname(os.path.realpath(__file__))
 #parquet_file = os.path.join(path, 'Files\\sp.parquet')
 #points = pd.read_parquet(parquet_file)
-for year in range(2019,2025,1):
+for year in range(2000,2025,1):
   inmet_download_unzip(year,path) 
   df_year = compile_year(year,path)
   for index, row in df_year.iterrows():
